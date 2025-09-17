@@ -84,6 +84,7 @@ stat(const char *n, struct stat *st)
   return r;
 }
 
+// 把字符串形式的十进制数字转换成int类型的十进制数字
 int
 atoi(const char *s)
 {
