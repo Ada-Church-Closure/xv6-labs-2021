@@ -95,3 +95,24 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+
+// 内核实现的系统调用处理函数,用户态调用trace的时候,控制流会进入内核,内核调用sys_call()函数
+// sys_call函数取用户态的参数mask存入proc的字段,来判断是否继续追踪并且返回0给用户态
+// 因为子进程在fork的时候,会复制父进程的mask字段
+
+// 因为参数不会直接传给内核态的函数 用户态--->内核态,切换会保存一个用户态的快照,我们会调用函数argint等等
+// 调用这些函数从那个快照里面获取用户态的参数
+uint64
+sys_trace(void){
+  int mask;
+  if(argint(0, &mask) < 0){
+    return -1;
+  }
+
+  // 获取当前的一个进程状态
+  struct proc* p = myproc();
+  p->tracemask = (uint)mask;
+  return 0;
+}

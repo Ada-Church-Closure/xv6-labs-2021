@@ -269,6 +269,7 @@ growproc(int n)
 
 // Create a new process, copying the parent.
 // Sets up child kernel stack to return as if from fork() system call.
+// 创建一个子进程,并且复制父进程的全部内存.
 int
 fork(void)
 {
@@ -291,6 +292,9 @@ fork(void)
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
+
+  // copy tracemask (lab2)
+  np->tracemask = p->tracemask;
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;

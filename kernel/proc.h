@@ -1,4 +1,5 @@
 // Saved registers for kernel context switches.
+// 保留上下文切换时候的寄存器
 struct context {
   uint64 ra;
   uint64 sp;
@@ -19,6 +20,7 @@ struct context {
 };
 
 // Per-CPU state.
+// 每个CPU的info
 struct cpu {
   struct proc *proc;          // The process running on this cpu, or null.
   struct context context;     // swtch() here to enter scheduler().
@@ -80,9 +82,11 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
+// 未分配,已分配,休眠,就绪,运行,僵尸进程(已经结束,但是还没有wait()来进行回收)
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
+// 每个进程的信息
 struct proc {
   struct spinlock lock;
 
@@ -93,6 +97,8 @@ struct proc {
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
 
+  int tracemask;               // 加一个每个进程的一个trace掩码
+  
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
 

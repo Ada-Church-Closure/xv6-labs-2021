@@ -2,6 +2,7 @@ struct stat;
 struct rtcdate;
 
 // system calls
+// 有哪些系统调用是可选的?
 int fork(void);
 int exit(int) __attribute__((noreturn));
 int wait(int*);
@@ -23,6 +24,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int trace(int);
 
 // ulib.c
 int stat(const char*, struct stat*);
