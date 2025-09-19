@@ -80,3 +80,18 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+// 这里是内存的操作,比较有意思
+uint64
+freemem(void){
+  uint64 freesize = 0;
+  struct run* r;
+  acquire(&kmem.lock);
+  // 获取所有的空闲链表的内存大小
+  for(r = kmem.freelist; r ;r = r->next){
+    // printf("freemem\n");
+    freesize += PGSIZE;
+  }
+  release(&kmem.lock);
+  return freesize;
+}
