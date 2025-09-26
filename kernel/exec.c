@@ -21,6 +21,7 @@ exec(char *path, char **argv)
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
 
+
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -39,6 +40,7 @@ exec(char *path, char **argv)
     goto bad;
 
   // Load program into memory.
+  // 把要执行的程序加载进入内存
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, 0, (uint64)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
@@ -109,6 +111,7 @@ exec(char *path, char **argv)
   safestrcpy(p->name, last, sizeof(p->name));
     
   // Commit to the user image.
+  // 保存了用户态的镜像
   oldpagetable = p->pagetable;
   p->pagetable = pagetable;
   p->sz = sz;
@@ -116,6 +119,10 @@ exec(char *path, char **argv)
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
 
+  // 打印第一个程序的页表
+  if(p->pid == 1){
+    vmprint(p->pagetable);
+  }
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:

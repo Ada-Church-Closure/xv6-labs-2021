@@ -2,6 +2,8 @@
 // kernel stacks, page-table pages,
 // and pipe buffers. Allocates whole 4096-byte pages.
 
+// 物理内存的分配器
+
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
@@ -14,19 +16,24 @@ void freerange(void *pa_start, void *pa_end);
 extern char end[]; // first address after kernel.
                    // defined by kernel.ld.
 
+// 每个节点都是一个run
 struct run {
   struct run *next;
 };
 
 struct {
+  // 自旋锁保护这部分内存
   struct spinlock lock;
+  // 维护一个空闲链表
   struct run *freelist;
 } kmem;
 
 void
 kinit()
 {
+  // 直接初始化内存分配器
   initlock(&kmem.lock, "kmem");
+  // 直接把这部分内存拆成page然后连起来
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -35,6 +42,7 @@ freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
+  // 每个page上调用kfree
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
 }
@@ -52,11 +60,13 @@ kfree(void *pa)
     panic("kfree");
 
   // Fill with junk to catch dangling refs.
+  // 全部设置成1--->这样在程序写的有问题,带来悬挂指针的时候,会使程序更快的崩溃从而找到错误,而不会带来一些迷惑的错误.
   memset(pa, 1, PGSIZE);
 
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
+  // 把r加入空闲链表的头部
   r->next = kmem.freelist;
   kmem.freelist = r;
   release(&kmem.lock);

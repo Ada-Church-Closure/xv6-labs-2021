@@ -76,6 +76,7 @@ uservec:
         # restore kernel page table from p->trapframe->kernel_satp
         ld t1, 0(a0)
         csrw satp, t1
+        # 在返回user sapce之前会刷新TLB.
         sfence.vma zero, zero
 
         # a0 is no longer valid, since the kernel page

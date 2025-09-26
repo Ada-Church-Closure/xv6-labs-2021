@@ -8,7 +8,10 @@
 
 /*
  * the kernel's page table.
+ * 管理地址空间和页表
  */
+
+ // pagetable_t类型可以指向任意一种页表,用来操作
 pagetable_t kernel_pagetable;
 
 extern char etext[];  // kernel.ld sets this to end of kernel code.
@@ -16,6 +19,8 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 extern char trampoline[]; // trampoline.S
 
 // Make a direct-map page table for the kernel.
+// main调用kvminit--->创建一个内核页表
+// 这个时候硬件还没有开启paging,所以就是直接映射.
 pagetable_t
 kvmmake(void)
 {
@@ -24,6 +29,8 @@ kvmmake(void)
   kpgtbl = (pagetable_t) kalloc();
   memset(kpgtbl, 0, PGSIZE);
 
+  // 通过kvmmap把每一个I/O设备都映射到内核的位置.
+  // 直接映射,因为把va和pa的参数设置成了一样的.
   // uart registers
   kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
@@ -61,7 +68,12 @@ kvminit(void)
 void
 kvminithart()
 {
+  // 把root kernel page的地址写入satp寄存器
+  // 重新加载satp之后会执行 sfence.vma--->刷新TLB快表,就是PTB表项的一种的cache.
+
+  // 在这条指令之前，还不存在可用的page table，所以也就不存在地址翻译。执行完这条指令之后，程序计数器（Program Counter）增加了4。而之后的下一条指令被执行时，程序计数器会被内存中的page table翻译。
   w_satp(MAKE_SATP(kernel_pagetable));
+  // 启用paging,之后内核要执行的指令就可以正确地进行映射的操作了
   sfence_vma();
 }
 
@@ -77,12 +89,14 @@ kvminithart()
 //   21..29 -- 9 bits of level-1 index.
 //   12..20 -- 9 bits of level-0 index.
 //    0..11 -- 12 bits of byte offset within the page.
+// 为给定的虚拟地址找到PTE表项--->这里就是对于硬件行为的模拟
 pte_t *
 walk(pagetable_t pagetable, uint64 va, int alloc)
 {
   if(va >= MAXVA)
     panic("walk");
 
+  // 27bits---> 9 9 9 分为三次寻找
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
     if(*pte & PTE_V) {
@@ -91,6 +105,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
+      // 这里就相当于是level0的PTE,直接对于物理地址进行调整,然后直接装进PTE表项
       *pte = PA2PTE(pagetable) | PTE_V;
     }
   }
@@ -123,6 +138,7 @@ walkaddr(pagetable_t pagetable, uint64 va)
 // add a mapping to the kernel page table.
 // only used when booting.
 // does not flush TLB or enable paging.
+// 给这些内核分配的虚拟内存创建页表
 void
 kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 {
@@ -134,6 +150,7 @@ kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm)
 // physical addresses starting at pa. va and size might not
 // be page-aligned. Returns 0 on success, -1 if walk() couldn't
 // allocate a needed page-table page.
+// map的操作,给虚拟地址va创建PTE,他们指向pa.
 int
 mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 {
@@ -228,12 +245,14 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
 
   oldsz = PGROUNDUP(oldsz);
   for(a = oldsz; a < newsz; a += PGSIZE){
+    // 分配物理内存
     mem = kalloc();
     if(mem == 0){
       uvmdealloc(pagetable, a, oldsz);
       return 0;
     }
     memset(mem, 0, PGSIZE);
+    // 用mappages对于这部分内存进行映射
     if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
       kfree(mem);
       uvmdealloc(pagetable, a, oldsz);
@@ -278,6 +297,7 @@ freewalk(pagetable_t pagetable)
       panic("freewalk: leaf");
     }
   }
+  
   kfree((void*)pagetable);
 }
 
@@ -340,6 +360,7 @@ uvmclear(pagetable_t pagetable, uint64 va)
   *pte &= ~PTE_U;
 }
 
+// 我们站在kernel的角度对于函数命名
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
 // Return 0 on success, -1 on error.
@@ -430,5 +451,42 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return 0;
   } else {
     return -1;
+  }
+}
+
+// 就是循环和递归的操作
+// 实际上就是一个地址
+void
+vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+  do_vmprint(pagetable, 0);
+}
+
+void 
+do_vmprint(pagetable_t pagetable, uint64 layer){
+
+
+  for(int index = 0; index < 512; ++index){
+    pte_t pte = pagetable[index];
+    // 注意,本身没有表项的就不要再打印了
+    // 页表工作原理其实还是数组
+    if(pte == 0){
+      continue;
+    }
+    for(int layer_index = 0; layer_index <= layer; ++layer_index){
+      printf("..");
+      if(layer_index != layer){
+        printf(" ");
+      }
+    }
+    printf("%d: ", index);
+    printf("pte %p pa %p\n", pte, PTE2PA(pte));
+
+    // 证明有子目录
+    if(((pte & PTE_V) && (pte & (PTE_W | PTE_R | PTE_X)) == 0) && pte != 0){
+      uint64 child = PTE2PA(pte);
+      do_vmprint((pagetable_t)child, layer + 1);
+    }
   }
 }

@@ -76,14 +76,44 @@ sys_sleep(void)
 }
 
 
-#ifdef LAB_PGTBL
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  // 从用户态获取参数
+  uint64 vaddr;
+  int num;
+  uint64 ret_addr;
+  if(argaddr(0, &vaddr) < 0){
+    return -1;
+  }
+
+  if(argint(1, &num) < 0){
+    return -1;
+  }
+
+  if(argaddr(2, &ret_addr) < 0){
+    return -1;
+  }
+
+
+  struct proc* p = myproc();
+  pagetable_t pagetable = p->pagetable;
+  // 注意要初始化,简单的C语言概念
+  uint64 res = 0;
+
+  for(int index = 0; index < num; ++index){
+    pte_t* pte = walk(pagetable, vaddr + PGSIZE * index, 1);
+    // 如果PTE_A的位置为一,那就记下来并且清零
+    if((*pte) & PTE_A){
+      *pte &= (~PTE_A);
+      res |= (1L << index);
+    }
+  }
+
+  copyout(pagetable, ret_addr, (char*)&res, sizeof(uint64));
   return 0;
 }
-#endif
+
 
 uint64
 sys_kill(void)
