@@ -24,6 +24,13 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
+// lab4
+// 每经过一定的时钟周期就调用处理函数,给当前的进程发出警告
+int sigalarm(int ticks, void (*handler)());
+int sigreturn(void);
+
+
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

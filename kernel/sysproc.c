@@ -70,6 +70,7 @@ sys_sleep(void)
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);
+  backtrace();
   return 0;
 }
 
@@ -94,4 +95,25 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// lab4 traps
+// 我们在这里进行参数的处理
+uint64 
+sys_sigalarm(void){
+  // 把用户传进来的这些参数先搞到我们的这个进程持有的成员里面去
+  if(argint(0, &(myproc()->alarm_interval)) < 0 || 
+      argaddr(1, &(myproc()->alarm_handler)) < 0){
+      return -1;
+      }
+  return 0;
+}
+
+uint64
+sys_sigreturn(void){
+  // 当handler返回的时候,我们要恢复陷阱帧
+  // 这里trapframe移动,就当然也包括了epc的值大小.
+  memmove(myproc()->trapframe, myproc()->alarm_trapframe, sizeof(struct trapframe));
+  myproc()->is_alarming = 0;
+  return 0;
 }

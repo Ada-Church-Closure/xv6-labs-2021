@@ -15,6 +15,7 @@ r_mhartid()
 #define MSTATUS_MPP_U (0L << 11)
 #define MSTATUS_MIE (1L << 3)    // machine-mode interrupt enable.
 
+
 static inline uint64
 r_mstatus()
 {
@@ -94,6 +95,7 @@ w_sie(uint64 x)
 }
 
 // Machine-mode Interrupt Enable
+// 这些寄存器会来处理trap,保存一些临时的状态并且最终可以返回到用户态
 #define MIE_MEIE (1L << 11) // external
 #define MIE_MTIE (1L << 7)  // timer
 #define MIE_MSIE (1L << 3)  // software
@@ -113,7 +115,8 @@ w_mie(uint64 x)
 
 // supervisor exception program counter, holds the
 // instruction address to which a return from
-// exception will go.
+// exception will go
+// sepc寄存器,当发生陷阱时，RISC-V会在这里保存程序计数器pc（因为pc会被stvec覆盖）。sret（从陷阱返回）指令会将sepc复制到pc。内核可以写入sepc来控制sret的去向。
 static inline void 
 w_sepc(uint64 x)
 {
@@ -160,6 +163,7 @@ w_mideleg(uint64 x)
 
 // Supervisor Trap-Vector Base Address
 // low two bits are mode.
+// stvec--->寄存器,陷阱处理程序的地址,RISC-V会跳转到这里来处理陷阱
 static inline void 
 w_stvec(uint64 x)
 {
@@ -228,6 +232,7 @@ w_mscratch(uint64 x)
 }
 
 // Supervisor Trap Cause
+// cause:描述的这个trap触发的原因
 static inline uint64
 r_scause()
 {
@@ -330,6 +335,16 @@ sfence_vma()
   // the zero, zero means flush all TLB entries.
   asm volatile("sfence.vma zero, zero");
 }
+
+// 内联汇编--->直接读取frame ptr的值
+static inline uint64
+r_fp()
+{
+  uint64 x;
+  asm volatile("mv %0, s0" : "=r" (x) );
+  return x;
+}
+
 
 
 #define PGSIZE 4096 // bytes per page

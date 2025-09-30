@@ -14,7 +14,7 @@ trampoline:
 .align 4
 .globl uservec
 uservec:    
-	#
+	# 用户空间中执行产生陷阱
         # trap.c sets stvec to point here, so
         # traps from user space start here,
         # in supervisor mode, but with a

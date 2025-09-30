@@ -1,0 +1,6 @@
+a2
+inline inline
+1542(ra)--->0x63e
+0x40
+HE110 World
+寄存器不全的话,直接读取到垃圾内容.

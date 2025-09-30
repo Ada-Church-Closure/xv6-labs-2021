@@ -132,3 +132,22 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+// 页面对齐,每个栈都会分配一个page.
+// 其实最好把名字打印出来
+void
+backtrace(void)
+{
+  printf("backtrace:\n");
+  // 获取当前的frame ptr
+  uint64 fp = r_fp();
+
+  while(PGROUNDUP(fp) - PGROUNDDOWN(fp) == PGSIZE){
+    // 存放返回地址
+    uint64 ret_addr = *(uint64*)(fp - 8);
+    printf("%p\n", ret_addr);
+
+    // 存放prev frame pointer
+    fp = *(uint64*)(fp - 16);
+  }
+}

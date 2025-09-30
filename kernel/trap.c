@@ -77,7 +77,23 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  // 计时器到了我们要进行强制打断
+
+  if(which_dev == 2){
+    p->alarm_ticks++;
+    // 计时器到了
+
+    if(p->alarm_ticks == p->alarm_interval && p->alarm_interval != 0 && p->is_alarming == 0){
+      // handler可能会更改用户寄存器内存,再次进行保存trapframe
+      memmove(p->alarm_trapframe, p->trapframe, sizeof(struct trapframe));
+      // 更改陷阱帧中的epc为处理函数
+      // 这里的意义是什么?
+      p->trapframe->epc = (uint64)p->alarm_handler;
+      p->alarm_ticks = 0;
+      // 更改,表明正在执行,不能再次执行
+      p->is_alarming = 1;
+    }
+  }
     yield();
 
   usertrapret();

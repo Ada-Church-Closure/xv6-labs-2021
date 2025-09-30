@@ -141,6 +141,16 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  // 初始化报警的参数
+  p->alarm_ticks = 0;
+  p->alarm_interval = 0;
+  // 这里的回调函数怎么设置?--->用户传进来的,别管,它其实就类似于try and catch之类的
+  if((p->alarm_trapframe = (struct trapframe *)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  p->is_alarming = 0;
   return p;
 }
 
@@ -164,6 +174,17 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+
+  // lab4
+  p->alarm_handler = 0;
+  p->alarm_interval = 0;
+  p->alarm_ticks = 0;
+  p->is_alarming = 0;
+
+  if(p->alarm_trapframe){
+    kfree((void*)p->alarm_trapframe);
+  }
+  p->alarm_trapframe = 0;
 }
 
 // Create a user page table for a given process,
@@ -492,6 +513,7 @@ sched(void)
 }
 
 // Give up the CPU for one scheduling round.
+// 警告之后进程进行让步的操作
 void
 yield(void)
 {

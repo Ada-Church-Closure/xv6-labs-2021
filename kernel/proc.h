@@ -105,4 +105,19 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  // lab4 traps
+  // 两次报警间的间隔
+  int alarm_interval;
+  // 两次报警间的时钟
+  int alarm_ticks;
+  // 处理的回调函数
+  void (*alarm_handler)();
+
+
+  // 还要做到不要重复调用以及handler执行的时候还要保存用户寄存器
+  // 是否在执行alarming函数
+  int is_alarming;
+  // 告警的陷阱帧
+  struct trapframe  *alarm_trapframe;
 };
