@@ -19,6 +19,7 @@
 // some have different meanings for
 // read vs write.
 // see http://byterunner.com/16550.html
+// UART的一些控制寄存器
 #define RHR 0                 // receive holding register (for input bytes)
 #define THR 0                 // transmit holding register (for output bytes)
 #define IER 1                 // interrupt enable register
@@ -49,6 +50,7 @@ extern volatile int panicked; // from printf.c
 
 void uartstart();
 
+// 发送完成中断
 void
 uartinit(void)
 {
@@ -83,6 +85,7 @@ uartinit(void)
 // because it may block, it can't be called
 // from interrupts; it's only suitable for use
 // by write().
+// 对于console进行写入.
 void
 uartputc(int c)
 {

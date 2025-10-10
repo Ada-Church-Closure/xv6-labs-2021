@@ -183,6 +183,7 @@ consoleinit(void)
 {
   initlock(&cons.lock, "cons");
 
+  // 该代码配置UART：UART对接收到的每个字节的输入生成一个接收中断，对发送完的每个字节的输出生成一个发送完成中断（kernel/uart.c:53）。
   uartinit();
 
   // connect read and write system calls
