@@ -1,0 +1,155 @@
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,6 @@
+ # Makefile for xv6-nic-driver
++
+ # Add your source files here
+-SOURCES = src/netif.c src/driver/nic.c
++SOURCES = src/netif.c src/driver/nic.c patches/patch-xv6-add-nic.diff
+
+ # Add your include directories here
+ INCLUDES = -Iinclude
+
+--- a/src/netif.c
++++ b/src/netif.c
+@@ -1,5 +1,6 @@
+ #include "netif.h"
+ #include "nic_iface.h"
++#include "driver/nic.h"
+
+ void netif_init() {
+     // Initialize network interface
+@@ -6,5 +7,6 @@
+     // Additional initialization code
+ }
+
+ void netif_send(void *packet, int len) {
+     // Send packet through NIC
+ }
+
+ void netif_recv(void *buffer, int len) {
+     // Receive packet from NIC
+ }
+
+--- a/src/driver/nic.c
++++ b/src/driver/nic.c
+@@ -1,5 +1,6 @@
+ #include "nic.h"
++#include "nic_iface.h"
+
+ void nic_init() {
+     // Initialize NIC hardware
+@@ -6,5 +7,6 @@
+     // Additional initialization code
+ }
+
+ void e1000_transmit(void *packet, int len) {
+     // Transmit packet through NIC
+ }
+
+ void e1000_recv(void *buffer, int len) {
+     // Receive packet from NIC
+ }
+
+--- a/include/nic_iface.h
++++ b/include/nic_iface.h
+@@ -1,5 +1,6 @@
+ #define NIC_REG_BASE 0x40000000
+ #define NIC_REG_STATUS 0x00000000
++#define NIC_REG_CTRL 0x00000004
+
+ #define NIC_STATUS_READY 0x01
+ #define NIC_STATUS_ERROR 0x02
+
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,6 @@
+ # xv6 NIC Driver Project
++
+ This project implements a network interface card (NIC) driver for the xv6 operating system. The driver supports packet transmission and reception, allowing xv6 to communicate over a network.
+
+ ## Project Structure
+@@ -6,5 +7,6 @@
+ - `src/driver/nic.c`: Implementation of the NIC driver.
+ - `src/driver/nic.h`: Header file for the NIC driver.
+ - `src/netif.c`: Network interface functions.
+ - `src/netif.h`: Header file for network interface functions.
+ - `include/nic_iface.h`: NIC interface definitions and constants.
+ - `patches/patch-xv6-add-nic.diff`: Patch for integrating the NIC driver into xv6.
+ - `tests/functional/netlab.c`: Functional tests for the NIC driver.
+ - `tests/scripts/run-tests.sh`: Script to run functional tests.
+ - `qemu/qemu-run.sh`: Script to run xv6 with QEMU.
+ - `docs/design.md`: Design document for the NIC driver.
+ - `Makefile`: Build instructions for the project.
+ - `.gitignore`: Git ignore file.
+ - `README.md`: Project documentation.
+
+## Setup Instructions
+1. Clone the repository.
+2. Run `make` to build the project.
+3. Use `qemu/qemu-run.sh` to run the xv6 operating system with the NIC driver.
+
+## Usage
+The NIC driver can be used to send and receive packets through the xv6 networking stack. Functional tests are provided to verify the driver's functionality.
+
+--- a/patches/patch-xv6-add-nic.diff
++++ b/patches/patch-xv6-add-nic.diff
+@@ -0,0 +1,20 @@
+diff --git a/xv6/Makefile b/xv6/Makefile
+index abcdef1..1234567 100644
+--- a/xv6/Makefile
++++ b/xv6/Makefile
+@@ -1,5 +1,6 @@
+ # xv6 Makefile
++
+ # Add NIC driver source files
++SRC += ../src/driver/nic.c
+
+diff --git a/xv6/netif.c b/xv6/netif.c
+index 1234567..abcdef1 100644
+--- a/xv6/netif.c
++++ b/xv6/netif.c
+@@ -1,5 +1,6 @@
+ #include "nic_iface.h"
++#include "../src/driver/nic.h"
+
+ void netif_init() {
+     // Initialize network interface
+@@ -6,5 +7,6 @@
+     // Additional initialization code
+ }
+
+ void netif_send(void *packet, int len) {
+     // Send packet through NIC
+ }
+
+ void netif_recv(void *buffer, int len) {
+     // Receive packet from NIC
+ }
+
+diff --git a/xv6/include/nic_iface.h b/xv6/include/nic_iface.h
+index abcdef1..1234567 100644
+--- a/xv6/include/nic_iface.h
++++ b/xv6/include/nic_iface.h
+@@ -1,5 +1,6 @@
+ #define NIC_REG_BASE 0x40000000
+ #define NIC_REG_STATUS 0x00000000
++#define NIC_REG_CTRL 0x00000004
+
+ #define NIC_STATUS_READY 0x01
+ #define NIC_STATUS_ERROR 0x02
+
+diff --git a/xv6/README.md b/xv6/README.md
+index abcdef1..1234567 100644
+--- a/xv6/README.md
++++ b/xv6/README.md
+@@ -1,5 +1,6 @@
+ # xv6 Networking
++
+ This document describes the networking capabilities of the xv6 operating system.
+
+ ## Overview
+ xv6 supports basic networking through a network interface card (NIC) driver.
+
+ ## Usage
+ The NIC driver can be used to send and receive packets through the xv6 networking stack.

@@ -142,6 +142,7 @@ begin_op(void)
 }
 
 // called at the end of each FS system call.
+// 如果是最后一个未处理的操作,就commit
 // commits if this was the last outstanding operation.
 void
 end_op(void)
